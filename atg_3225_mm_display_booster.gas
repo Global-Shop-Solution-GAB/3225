@@ -1,0 +1,100 @@
+Program.Sub.ScreenSU.Start
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+
+Variable.Global.sJob.Declare(String)
+Variable.Global.sSuffix.Declare(String)
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'Coded by: SMC
+'Project Start Date: 3/23/2011
+'Hooks:
+'  Populate Hook (000016630)
+'  Work Order Change Hook (000016660)
+'  Pre-OK Hook (000016650)
+'Notes:
+'  Quote 2022 for Customer Micro Machine.  See ATG_MM_Priority_Booster.gas for main part of this project.
+'  Work Order header would be update to support storing the base priority field on a new field. GAB scripts will need to be written to support the saving of the data and loading of the data from the database. If the
+'  	base priority is changed by the user then the script will update the information to the following the rules above to the job.
+
+V.Global.sJob.Set(V.Passed.000003)
+V.Global.sSuffix.Set(V.Passed.000004)
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+'F.Intrinsic.Debug.InvokeDebugger
+'F.Intrinsic.Debug.Stop
+
+F.Intrinsic.Control.If(V.Caller.Hook,=,16630)
+	F.Intrinsic.Control.CallSub(Show_fields)
+F.Intrinsic.Control.ElseIf(V.Caller.Hook,=,16660)
+	F.Intrinsic.Control.CallSub(Populate_booster)
+F.Intrinsic.Control.ElseIf(V.Caller.Hook,=,16650)
+	F.Intrinsic.Control.CallSub(Save_booster)
+F.Intrinsic.Control.EndIf
+
+F.ODBC.Connection!conx.Close
+
+
+Program.Sub.Main.End
+
+Program.Sub.Populate_Booster.Start
+V.Local.sQuery.Declare(String)
+
+F.Intrinsic.String.Concat("SELECT * FROM ATG_3225_MM_BASE_PRIORITY WHERE JOB='",V.Global.sJob,"' AND SUFFIX='",V.Global.sSuffix,"'",V.Local.sQuery)
+F.ODBC.Connection!conx.OpenRecordsetRO("rstPriority",V.Local.sQuery)
+F.Intrinsic.Control.If(V.ODBC.conx!rstPriority.EOF,<>,True)
+	V.Passed.GAB-TEXT-1.Set(V.ODBC.conx!rstPriority.FieldValTrim!PRIORITY)
+F.Intrinsic.Control.Else
+	V.Passed.GAB-TEXT-1.Set(V.Passed.000022)
+'	F.Intrinsic.UI.Msgbox("Priority not found")
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rstPriority.Close
+
+Program.Sub.Populate_Booster.End
+
+Program.Sub.Save_Booster.Start
+V.Local.sQuery.Declare(String)
+
+F.Intrinsic.String.Concat("SELECT * FROM ATG_3225_MM_BASE_PRIORITY WHERE JOB='",V.Global.sJob,"' AND SUFFIX='",V.Global.sSuffix,"'",V.Local.sQuery)
+F.ODBC.Connection!conx.OpenRecordsetRW("rstPriority",V.Local.sQuery)
+F.Intrinsic.Control.If(V.ODBC.conx!rstPriority.EOF,=,True)
+	F.ODBC.conx!rstPriority.AddNew
+	F.ODBC.conx!rstPriority.Set!JOB(V.Global.sJob)
+	F.ODBC.conx!rstPriority.Set!SUFFIX(V.Global.sSuffix)
+F.Intrinsic.Control.EndIf
+F.ODBC.conx!rstPriority.Set!PRIORITY(V.Passed.GAB-TEXT-1)
+F.ODBC.conx!rstPriority.Update
+
+F.ODBC.conx!rstPriority.Close
+
+
+
+Program.Sub.Save_Booster.End
+
+Program.Sub.Show_Fields.Start
+F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-1,"HIDE",0)
+V.Passed.GAB-LBL-1.Set("Base")
+F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PL","418")
+F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PT","157")
+F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PH","12")
+F.Intrinsic.Variable.SetProperty("GAB-LBL-1","PW","39")
+
+F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-LBL-2,"HIDE",0)
+V.Passed.GAB-LBL-2.Set("Priority")
+F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PL","418")
+F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PT","169")
+F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PH","12")
+F.Intrinsic.Variable.SetProperty("GAB-LBL-2","PW","36")
+
+F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-1,"HIDE",0)
+F.Intrinsic.UI.ChangeCallerProperty(V.Passed.GAB-TEXT-1,"LOCK",0)
+F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PL","420")
+F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PT","184")
+F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PH","16")
+F.Intrinsic.Variable.SetProperty("GAB-TEXT-1","PW","32")
+
+Program.Sub.Show_Fields.End
+
+
